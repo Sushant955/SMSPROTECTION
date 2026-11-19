@@ -1,0 +1,52 @@
+# Render Blueprint: New + > Blueprint > pick this repo. See README "Deploy".
+databases:
+  - name: ucbps-db
+    plan: free
+    databaseName: ucbps
+    user: ucbps
+
+services:
+  - type: web
+    name: ucbps-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: DB_HOST
+        fromDatabase: { name: ucbps-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: ucbps-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: ucbps-db, property: database }
+      - key: DB_USER
+        fromDatabase: { name: ucbps-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: ucbps-db, property: password }
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false          # you type this in the Render dashboard
+      - key: ADMIN_PASSWORD
+        sync: false          # min 8 chars
+      - key: CORS_ORIGINS
+        sync: false          # set to your dashboard URL after it is deployed
+
+  - type: web
+    name: ucbps-ml
+    runtime: docker
+    plan: free
+    dockerfilePath: ./ml-engine/Dockerfile
+    dockerContext: ./ml-engine
+    healthCheckPath: /health
+
+  - type: web
+    name: ucbps-dashboard
+    runtime: static
+    rootDir: dashboard
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false          # set to your backend URL, e.g. https://ucbps-backend.onrender.com
